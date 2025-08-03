@@ -4,6 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
 from database.session import get_db
 from models.shipment import Shipment
 
@@ -106,7 +109,7 @@ async def db_status(db: AsyncSession = Depends(get_db)):
         # Get sample data with more details
         sample_data = []
         if all_shipments:
-            for shipment in all_shipments[:5]:  # First 5
+            for shipment in all_shipments[:10]:  # First 10
                 sample_data.append({
                     "id": shipment.id,
                     "track_no": shipment.track_no,
@@ -120,11 +123,70 @@ async def db_status(db: AsyncSession = Depends(get_db)):
             "database_connection": "OK",
             "total_shipments": count,
             "sample_data": sample_data,
-            "note": "If you see data here but not on dashboard, there might be a query issue"
+            "note": "All data directly from the Render database"
         }
     except Exception as e:
         return {
             "database_connection": "ERROR",
             "error": str(e),
             "total_shipments": 0
+        }
+
+@router.get("/debug/add-test-data")
+async def add_test_data_route(db: AsyncSession = Depends(get_db)):
+    """Add test data directly to Render database"""
+    try:
+        # Check if test data already exists
+        existing = await db.execute(select(Shipment).where(Shipment.track_no == "1Z999AA1234567890"))
+        if existing.scalar():
+            return {"message": "Test data already exists"}
+        
+        from datetime import datetime
+        
+        # Create test shipments
+        test_shipments = [
+            Shipment(
+                track_no="1Z999AA1234567890",
+                customer_id="CUST001",
+                invoice_number="INV001",
+                status_code=10,
+                status_desc="In Transit",
+                estimated_delivery="2025-08-05",
+                created_at=datetime.now()
+            ),
+            Shipment(
+                track_no="1Z999BB9876543210",
+                customer_id="CUST002",
+                invoice_number="INV002", 
+                status_code=20,
+                status_desc="Delivered",
+                delivered_time="2025-08-03 14:30:00",
+                received_by="John Doe",
+                created_at=datetime.now()
+            ),
+            Shipment(
+                track_no="1Z999CC1122334455",
+                customer_id="CUST003",
+                invoice_number="INV003",
+                status_code=5,
+                status_desc="Processing",
+                estimated_delivery="2025-08-06",
+                created_at=datetime.now()
+            )
+        ]
+        
+        for shipment in test_shipments:
+            db.add(shipment)
+        
+        await db.commit()
+        
+        return {
+            "message": f"Added {len(test_shipments)} test shipments to database",
+            "shipments": [s.track_no for s in test_shipments]
+        }
+    except Exception as e:
+        await db.rollback()
+        return {
+            "error": str(e),
+            "message": "Failed to add test data"
         }

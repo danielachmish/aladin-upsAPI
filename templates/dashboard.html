@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>UPS Tracker - לוח משלוחים</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; direction: rtl; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    th { background-color: #f2f2f2; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>משלוחים פעילים</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>מספר מעקב</th>
+        <th>מס' לקוח</th>
+        <th>חשבונית</th>
+        <th>סטטוס</th>
+        <th>חריג</th>
+        <th>הערכה למסירה</th>
+        <th>התקבל אצל</th>
+        <th>עודכן בתאריך</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in shipments %}
+      <tr>
+        <td>{{ s.track_no }}</td>
+        <td>{{ s.customer_id }}</td>
+        <td>{{ s.invoice_number }}</td>
+        <td>{{ s.status_desc }}</td>
+        <td>{{ s.exception_desc or '' }}</td>
+        <td>{{ s.estimated_delivery or '' }}</td>
+        <td>{{ s.received_by or '' }}</td>
+        <td>{{ s.updated_at.strftime('%Y-%m-%d %H:%M') if s.updated_at else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

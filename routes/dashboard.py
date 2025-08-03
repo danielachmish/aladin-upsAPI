@@ -15,13 +15,32 @@ logger = logging.getLogger(__name__)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         logger.info("Loading dashboard...")
-        result = await db.execute(select(Shipment).order_by(Shipment.updated_at.desc()).limit(50))
-        shipments = result.scalars().all()
+        
+        # Try the complex query first
+        try:
+            result = await db.execute(
+                select(Shipment)
+                .order_by(
+                    Shipment.updated_at.desc().nulls_last(), 
+                    Shipment.created_at.desc().nulls_last(),
+                    Shipment.id.desc()
+                )
+                .limit(50)
+            )
+            shipments = result.scalars().all()
+        except Exception as e:
+            logger.warning(f"Complex query failed, trying simple query: {e}")
+            # Fallback to simple query
+            result = await db.execute(select(Shipment).order_by(Shipment.id.desc()).limit(50))
+            shipments = result.scalars().all()
+        
         logger.info(f"Found {len(shipments)} shipments")
         
         # Log some sample data
         if shipments:
             logger.info(f"Sample shipment: {shipments[0].track_no}")
+            for i, ship in enumerate(shipments[:3]):
+                logger.info(f"Shipment {i+1}: {ship.track_no} - {ship.status_desc}")
         else:
             logger.warning("No shipments found in database")
             
@@ -33,25 +52,29 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/debug/db-status")
 async def db_status(db: AsyncSession = Depends(get_db)):
     try:
-        # Count total shipments
-        count_result = await db.execute(select(Shipment))
-        all_shipments = count_result.scalars().all()
+        # Simple count and select all
+        result = await db.execute(select(Shipment))
+        all_shipments = result.scalars().all()
         count = len(all_shipments)
         
-        # Get sample data
+        # Get sample data with more details
         sample_data = []
         if all_shipments:
-            for shipment in all_shipments[:3]:  # First 3
+            for shipment in all_shipments[:5]:  # First 5
                 sample_data.append({
+                    "id": shipment.id,
                     "track_no": shipment.track_no,
+                    "customer_id": shipment.customer_id,
                     "status_desc": shipment.status_desc,
+                    "created_at": str(shipment.created_at) if shipment.created_at else None,
                     "updated_at": str(shipment.updated_at) if shipment.updated_at else None
                 })
         
         return {
             "database_connection": "OK",
             "total_shipments": count,
-            "sample_data": sample_data
+            "sample_data": sample_data,
+            "note": "If you see data here but not on dashboard, there might be a query issue"
         }
     except Exception as e:
         return {

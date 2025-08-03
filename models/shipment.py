@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
+from datetime import datetime
 from database.session import Base
 
 class Shipment(Base):
@@ -15,4 +16,5 @@ class Shipment(Base):
     estimated_delivery = Column(String, nullable=True)
     delivered_time = Column(String, nullable=True)
     received_by = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime)

@@ -11,10 +11,24 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:020796@l
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+print(f"Database URL (masked): {DATABASE_URL.split('@')[0]}@***")  # Log for debugging
+
+try:
+    engine = create_async_engine(DATABASE_URL, echo=False)
+    print("Database engine created successfully")
+except Exception as e:
+    print(f"Error creating database engine: {e}")
+    raise
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
 async def get_db():
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        except Exception as e:
+            print(f"Database session error: {e}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()

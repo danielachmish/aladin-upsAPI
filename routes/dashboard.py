@@ -16,6 +16,18 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         logger.info("Loading dashboard...")
         
+        # Test database connection first
+        try:
+            await db.execute(select(1))
+            logger.info("Database connection test successful")
+        except Exception as e:
+            logger.error(f"Database connection test failed: {e}")
+            return templates.TemplateResponse("dashboard.html", {
+                "request": request, 
+                "shipments": [],
+                "error": f"Database connection failed: {str(e)}"
+            })
+        
         # Try the complex query first
         try:
             result = await db.execute(
@@ -28,11 +40,21 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
                 .limit(50)
             )
             shipments = result.scalars().all()
+            logger.info("Complex query succeeded")
         except Exception as e:
             logger.warning(f"Complex query failed, trying simple query: {e}")
             # Fallback to simple query
-            result = await db.execute(select(Shipment).order_by(Shipment.id.desc()).limit(50))
-            shipments = result.scalars().all()
+            try:
+                result = await db.execute(select(Shipment).order_by(Shipment.id.desc()).limit(50))
+                shipments = result.scalars().all()
+                logger.info("Simple query succeeded")
+            except Exception as e2:
+                logger.error(f"Simple query also failed: {e2}")
+                return templates.TemplateResponse("dashboard.html", {
+                    "request": request, 
+                    "shipments": [],
+                    "error": f"Query failed: {str(e2)}"
+                })
         
         logger.info(f"Found {len(shipments)} shipments")
         
@@ -47,7 +69,11 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         return templates.TemplateResponse("dashboard.html", {"request": request, "shipments": shipments})
     except Exception as e:
         logger.error(f"Error loading dashboard: {e}")
-        return templates.TemplateResponse("dashboard.html", {"request": request, "shipments": []})
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request, 
+            "shipments": [],
+            "error": f"Dashboard error: {str(e)}"
+        })
 
 @router.get("/debug/db-status")
 async def db_status(db: AsyncSession = Depends(get_db)):

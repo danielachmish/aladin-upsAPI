@@ -2,6 +2,7 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,7 +18,14 @@ print(f"Database URL (masked): {DATABASE_URL.split('@')[0]}@***")  # Log for deb
 Base = declarative_base()
 
 try:
-    engine = create_async_engine(DATABASE_URL, echo=True)  # Enable echo for debugging
+    engine = create_async_engine(
+        DATABASE_URL, 
+        echo=True,
+        pool_pre_ping=True,  # Verify connections before use
+        pool_recycle=300,    # Recycle connections every 5 minutes
+        pool_size=5,         # Number of connections to maintain
+        max_overflow=10      # Additional connections if needed
+    )
     print("Database engine created successfully")
 except Exception as e:
     print(f"Error creating database engine: {e}")
@@ -28,6 +36,8 @@ AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_com
 async def get_db():
     async with AsyncSessionLocal() as session:
         try:
+            # Test connection before yielding
+            await session.execute(text("SELECT 1"))
             yield session
         except Exception as e:
             print(f"Database session error: {e}")

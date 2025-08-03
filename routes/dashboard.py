@@ -16,19 +16,30 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         logger.info("Loading dashboard...")
         
-        # Test database connection first
-        try:
-            await db.execute(select(1))
-            logger.info("Database connection test successful")
-        except Exception as e:
-            logger.error(f"Database connection test failed: {e}")
-            return templates.TemplateResponse("dashboard.html", {
-                "request": request, 
-                "shipments": [],
-                "error": f"Database connection failed: {str(e)}"
-            })
+        # Test database connection with retry
+        retry_count = 3
+        for attempt in range(retry_count):
+            try:
+                await db.execute(select(1))
+                logger.info("Database connection test successful")
+                break
+            except Exception as e:
+                logger.warning(f"Database connection attempt {attempt + 1} failed: {e}")
+                if attempt == retry_count - 1:
+                    logger.error(f"All database connection attempts failed")
+                    return templates.TemplateResponse("dashboard.html", {
+                        "request": request, 
+                        "shipments": [],
+                        "error": f"Database connection failed after {retry_count} attempts: {str(e)}"
+                    })
+                # Wait a bit before retry
+                import asyncio
+                await asyncio.sleep(0.5)
         
-        # Try the complex query first
+        # Try to get shipments with multiple fallback queries
+        shipments = []
+        
+        # Try complex query first
         try:
             result = await db.execute(
                 select(Shipment)
@@ -42,19 +53,28 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             shipments = result.scalars().all()
             logger.info("Complex query succeeded")
         except Exception as e:
-            logger.warning(f"Complex query failed, trying simple query: {e}")
-            # Fallback to simple query
+            logger.warning(f"Complex query failed: {e}")
+            
+            # Try simple query
             try:
                 result = await db.execute(select(Shipment).order_by(Shipment.id.desc()).limit(50))
                 shipments = result.scalars().all()
                 logger.info("Simple query succeeded")
             except Exception as e2:
-                logger.error(f"Simple query also failed: {e2}")
-                return templates.TemplateResponse("dashboard.html", {
-                    "request": request, 
-                    "shipments": [],
-                    "error": f"Query failed: {str(e2)}"
-                })
+                logger.warning(f"Simple query failed: {e2}")
+                
+                # Try most basic query
+                try:
+                    result = await db.execute(select(Shipment))
+                    shipments = result.scalars().all()
+                    logger.info("Basic query succeeded")
+                except Exception as e3:
+                    logger.error(f"All queries failed: {e3}")
+                    return templates.TemplateResponse("dashboard.html", {
+                        "request": request, 
+                        "shipments": [],
+                        "error": f"Query failed: {str(e3)}"
+                    })
         
         logger.info(f"Found {len(shipments)} shipments")
         

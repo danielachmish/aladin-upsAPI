@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from routes.webhook import router as webhook_router
-from models import Log, TrackingData  # נניח שכך מוגדרות המחלקות שלך
+
 from routes.dashboard import router as dashboard_router
 from fastapi.staticfiles import StaticFiles
 from routes.dashboard import router as dashboard_router

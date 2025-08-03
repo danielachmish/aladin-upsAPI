@@ -6,6 +6,7 @@ from database.session import engine, Base
 from models.shipment import Shipment
 from routes.webhook import router as webhook_router
 from routes.dashboard import router as dashboard_router
+from routes.api import router as api_router
 
 
 @asynccontextmanager
@@ -25,6 +26,7 @@ app = FastAPI(title="UPS Tracker", lifespan=lifespan)
 # ראוטרים
 app.include_router(webhook_router)
 app.include_router(dashboard_router)
+app.include_router(api_router)
 
 # Test database connection
 @app.get("/test-db")

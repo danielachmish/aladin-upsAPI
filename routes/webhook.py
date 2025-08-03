@@ -26,6 +26,7 @@ async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         shipment = result.scalars().first()
 
         if shipment:
+            # עדכון משלוח קיים
             shipment.status_code = int(data.get("statusCode", 0))
             shipment.status_desc = data.get("statusDescHeb")
             shipment.exception_code = data.get("exceptionCode")
@@ -33,6 +34,16 @@ async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             shipment.estimated_delivery = data.get("estimateDelivery")
             shipment.delivered_time = data.get("deliveredTime")
             shipment.received_by = data.get("receivedBy")
+            
+            # UPS API additional fields
+            shipment.service_code = data.get("serviceCode")
+            shipment.current_location = data.get("currentLocation")
+            shipment.last_scan_location = data.get("lastScanLocation")
+            shipment.last_scan_time = data.get("lastScanTime")
+            shipment.delivery_attempt_count = data.get("deliveryAttemptCount", 0)
+            shipment.delivery_instructions = data.get("deliveryInstructions")
+            shipment.signature_required = data.get("signatureRequired", False)
+            
             shipment.updated_at = now
             logger.info(f"Updated existing shipment: {track_no}")
         else:
@@ -47,6 +58,27 @@ async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 estimated_delivery=data.get("estimateDelivery"),
                 delivered_time=data.get("deliveredTime"),
                 received_by=data.get("receivedBy"),
+                
+                # UPS API additional fields
+                service_code=data.get("serviceCode"),
+                package_weight=data.get("packageWeight"),
+                package_dimensions=data.get("packageDimensions"),
+                shipper_name=data.get("shipperName"),
+                shipper_address=data.get("shipperAddress"),
+                recipient_name=data.get("recipientName"),
+                recipient_address=data.get("recipientAddress"),
+                current_location=data.get("currentLocation"),
+                last_scan_location=data.get("lastScanLocation"),
+                last_scan_time=data.get("lastScanTime"),
+                delivery_attempt_count=data.get("deliveryAttemptCount", 0),
+                delivery_instructions=data.get("deliveryInstructions"),
+                signature_required=data.get("signatureRequired", False),
+                ref1=data.get("ref1"),
+                ref2=data.get("ref2"),
+                ref3=data.get("ref3"),
+                shipping_cost=data.get("shippingCost"),
+                insurance_value=data.get("insuranceValue"),
+                
                 created_at=now,
                 updated_at=now,
             )

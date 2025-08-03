@@ -72,3 +72,26 @@ async def test_database():
 @app.get("/status")
 def root():
     return {"status": "UPS Tracker API is live!"}
+
+# Simple test route
+@app.get("/simple-test")
+async def simple_test():
+    try:
+        from database.session import AsyncSessionLocal
+        from sqlalchemy.future import select
+        
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Shipment))
+            shipments = result.scalars().all()
+            return {
+                "total_shipments": len(shipments),
+                "shipment_data": [
+                    {
+                        "track_no": s.track_no,
+                        "customer_id": s.customer_id,
+                        "status_desc": s.status_desc
+                    } for s in shipments[:3]  # First 3
+                ]
+            }
+    except Exception as e:
+        return {"error": str(e)}

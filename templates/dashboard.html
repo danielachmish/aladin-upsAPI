@@ -27,19 +27,43 @@
       </tr>
     </thead>
     <tbody>
-      {% for s in shipments %}
-      <tr>
-        <td>{{ s.track_no }}</td>
-        <td>{{ s.customer_id }}</td>
-        <td>{{ s.invoice_number }}</td>
-        <td>{{ s.status_desc }}</td>
-        <td>{{ s.exception_desc or '' }}</td>
-        <td>{{ s.estimated_delivery or '' }}</td>
-        <td>{{ s.received_by or '' }}</td>
-        <td>{{ s.updated_at.strftime('%Y-%m-%d %H:%M') if s.updated_at else '' }}</td>
-      </tr>
-      {% endfor %}
+      {% if shipments %}
+        {% for s in shipments %}
+        <tr>
+          <td>{{ s.track_no }}</td>
+          <td>{{ s.customer_id }}</td>
+          <td>{{ s.invoice_number }}</td>
+          <td>{{ s.status_desc }}</td>
+          <td>{{ s.exception_desc or '' }}</td>
+          <td>{{ s.estimated_delivery or '' }}</td>
+          <td>{{ s.received_by or '' }}</td>
+          <td>{{ s.updated_at.strftime('%Y-%m-%d %H:%M') if s.updated_at else '' }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 20px; color: #666;">
+            אין נתונים להצגה. נתונים יופיעו כאן לאחר קבלת webhooks מ-UPS.
+            <br><br>
+            <a href="/debug/db-status" target="_blank">בדוק מצב הדאטאבייס</a> | 
+            <a href="/test-webhook" onclick="testWebhook(); return false;">צור נתונים לדוגמה</a>
+          </td>
+        </tr>
+      {% endif %}
     </tbody>
   </table>
+  
+  <script>
+    async function testWebhook() {
+      try {
+        const response = await fetch('/test-webhook', { method: 'POST' });
+        const result = await response.json();
+        alert(result.message);
+        location.reload();
+      } catch (error) {
+        alert('שגיאה ביצירת נתונים לדוגמה: ' + error.message);
+      }
+    }
+  </script>
 </body>
 </html>

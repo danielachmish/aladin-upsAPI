@@ -60,3 +60,54 @@ async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         logger.error(f"Error processing webhook: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/test-webhook")
+async def test_webhook(db: AsyncSession = Depends(get_db)):
+    """Test endpoint to create a sample shipment"""
+    try:
+        test_data = {
+            "trackNo": "TEST123456",
+            "ref1": "CUSTOMER001",
+            "ref2": "INV001",
+            "statusCode": "5",
+            "statusDescHeb": "במעבר",
+            "exceptionCode": None,
+            "exceptionDescHeb": None,
+            "estimateDelivery": "2025-08-05",
+            "deliveredTime": None,
+            "receivedBy": None
+        }
+        
+        now = datetime.utcnow()
+        
+        # Check if exists
+        result = await db.execute(select(Shipment).where(Shipment.track_no == test_data["trackNo"]))
+        existing = result.scalars().first()
+        
+        if existing:
+            return {"message": "Test shipment already exists", "track_no": test_data["trackNo"]}
+        
+        # Create new
+        shipment = Shipment(
+            track_no=test_data["trackNo"],
+            customer_id=test_data["ref1"],
+            invoice_number=test_data["ref2"],
+            status_code=int(test_data["statusCode"]),
+            status_desc=test_data["statusDescHeb"],
+            exception_code=test_data.get("exceptionCode"),
+            exception_desc=test_data.get("exceptionDescHeb"),
+            estimated_delivery=test_data.get("estimateDelivery"),
+            delivered_time=test_data.get("deliveredTime"),
+            received_by=test_data.get("receivedBy"),
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(shipment)
+        await db.commit()
+        
+        return {"message": "Test shipment created successfully", "track_no": test_data["trackNo"]}
+    
+    except Exception as e:
+        logger.error(f"Error creating test shipment: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

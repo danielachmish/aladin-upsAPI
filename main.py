@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -25,7 +25,7 @@ app.include_router(webhook_router)
 app.include_router(dashboard_router)
 
 # קבצים סטטיים
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # דשבורד
 @app.get("/")

@@ -1,27 +1,21 @@
 from fastapi import APIRouter, Request, Depends
-from sqlalchemy.orm import Session
-from database import SessionLocal
-from models.shipment import Shipment
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from datetime import datetime
+
+from database.session import get_db
+from models.shipment import Shipment
 
 router = APIRouter()
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Webhook: קבלת משלוחים מ-UPS
 @router.post("/webhook")
-async def receive_webhook(request: Request, db: Session = Depends(get_db)):
+async def receive_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     data = await request.json()
     now = datetime.utcnow()
     track_no = data.get("trackNo")
 
-    shipment = db.query(Shipment).filter_by(track_no=track_no).first()
+    result = await db.execute(select(Shipment).where(Shipment.track_no == track_no))
+    shipment = result.scalars().first()
 
     if shipment:
         shipment.status_code = int(data.get("statusCode", 0))
@@ -48,20 +42,5 @@ async def receive_webhook(request: Request, db: Session = Depends(get_db)):
         )
         db.add(shipment)
 
-    db.commit()
+    await db.commit()
     return {"message": "Shipment saved or updated successfully"}
-
-# שליפת משלוחים ללקוח לפי ref1
-@router.get("/shipments/{customer_id}")
-def get_shipments_by_customer(customer_id: str, db: Session = Depends(get_db)):
-    shipments = db.query(Shipment).filter(Shipment.customer_id == customer_id).all()
-
-    return [
-        {
-            "track_no": s.track_no,
-            "invoice_number": s.invoice_number,
-            "status": s.status_desc,
-            "delivered_time": s.delivered_time,
-            "received_by": s.received_by
-        } for s in shipments
-    ]

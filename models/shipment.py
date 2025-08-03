@@ -1,13 +1,13 @@
 from sqlalchemy import Column, Integer, String, DateTime
-from database import Base
+from database.session import Base
 
 class Shipment(Base):
     __tablename__ = "shipments"
 
     id = Column(Integer, primary_key=True, index=True)
     track_no = Column(String, unique=True, index=True)
-    customer_id = Column(String, index=True)  # ref1
-    invoice_number = Column(String)  # ref2
+    customer_id = Column(String, index=True)
+    invoice_number = Column(String)
     status_code = Column(Integer)
     status_desc = Column(String)
     exception_code = Column(String, nullable=True)

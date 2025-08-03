@@ -13,14 +13,17 @@ if DATABASE_URL.startswith("postgresql://"):
 
 print(f"Database URL (masked): {DATABASE_URL.split('@')[0]}@***")  # Log for debugging
 
+# Create Base FIRST
+Base = declarative_base()
+
 try:
-    engine = create_async_engine(DATABASE_URL, echo=False)
+    engine = create_async_engine(DATABASE_URL, echo=True)  # Enable echo for debugging
     print("Database engine created successfully")
 except Exception as e:
     print(f"Error creating database engine: {e}")
     raise
+
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-Base = declarative_base()
 
 async def get_db():
     async with AsyncSessionLocal() as session:

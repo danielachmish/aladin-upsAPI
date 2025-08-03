@@ -28,9 +28,12 @@
         <th>מספר מעקב</th>
         <th>מס' לקוח</th>
         <th>חשבונית</th>
-        <th>סטטוס</th>
-        <th>חריג</th>
+        <th>קוד סטטוס</th>
+        <th>תיאור סטטוס</th>
+        <th>קוד חריג</th>
+        <th>תיאור חריג</th>
         <th>הערכה למסירה</th>
+        <th>זמן מסירה</th>
         <th>התקבל אצל</th>
         <th>עודכן בתאריך</th>
       </tr>
@@ -42,20 +45,24 @@
           <td>{{ s.track_no }}</td>
           <td>{{ s.customer_id }}</td>
           <td>{{ s.invoice_number }}</td>
+          <td>{{ s.status_code }}</td>
           <td>{{ s.status_desc }}</td>
+          <td>{{ s.exception_code or '' }}</td>
           <td>{{ s.exception_desc or '' }}</td>
           <td>{{ s.estimated_delivery or '' }}</td>
+          <td>{{ s.delivered_time or '' }}</td>
           <td>{{ s.received_by or '' }}</td>
           <td>{{ s.updated_at.strftime('%Y-%m-%d %H:%M') if s.updated_at else '' }}</td>
         </tr>
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="8" style="text-align: center; padding: 20px; color: #666;">
+          <td colspan="11" style="text-align: center; padding: 20px; color: #666;">
             אין נתונים להצגה. נתונים יופיעו כאן לאחר קבלת webhooks מ-UPS.
             <br><br>
             <a href="/debug/db-status" target="_blank">בדוק מצב הדאטאבייס</a> | 
-            <a href="/test-webhook" onclick="testWebhook(); return false;">צור נתונים לדוגמה</a>
+            <a href="/test-webhook" onclick="testWebhook(); return false;">צור נתונים לדוגמה</a> |
+            <a href="/test-db" target="_blank">בדיקת חיבור ישירה</a>
           </td>
         </tr>
       {% endif %}
